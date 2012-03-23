@@ -18,5 +18,17 @@ executable dsmc-caster
   -- other-modules:
 
   build-depends:
-    dsmc        == 0.1.*,
-    base        == 4.*
+    base        == 4.*,
+    cmdargs     == 0.9.*,
+    dsmc        == 0.1.*
+
+
+executable dsmc-runner
+  ghc-options: -Wall
+  main-is: src/Runner.hs
+
+  -- other-modules:
+
+  build-depends:
+    base        == 4.*,
+    dsmc        == 0.1.*
