@@ -1,0 +1,22 @@
+name:                dsmc-tools
+version:             0.1.0.0
+synopsis:            DSMC toolkit for rarefied gas dynamics
+license:             BSD3
+license-file:        LICENSE
+author:              Dmitry Dzhus
+maintainer:          dima@dzhus.org
+category:            Physics
+
+build-type:          Simple
+cabal-version:       >=1.8
+tested-with:         GHC == 7.4.1
+
+executable dsmc-caster
+  ghc-options: -Wall
+  main-is: src/Caster.hs
+
+  -- other-modules:
+
+  build-depends:
+    dsmc        == 0.1.*,
+    base        == 4.*
