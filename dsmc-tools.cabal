@@ -12,7 +12,7 @@ cabal-version:       >=1.8
 tested-with:         GHC == 7.4.1
 
 executable dsmc-caster
-  ghc-options: -Wall
+  ghc-options: -Wall -threaded -rtsopts -O2
   main-is: src/Caster.hs
 
   -- other-modules:
@@ -20,7 +20,9 @@ executable dsmc-caster
   build-depends:
     base        == 4.*,
     cmdargs     == 0.9.*,
-    dsmc        == 0.1.*
+    dsmc        == 0.1.*,
+    gloss       == 1.7.*,
+    gloss-field == 1.7.*
 
 
 executable dsmc-runner
