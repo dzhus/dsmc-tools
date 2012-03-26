@@ -17,12 +17,13 @@ import GHC.Float
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Display
 import qualified Graphics.Gloss.Data.Point as G
+import qualified Graphics.Gloss.Interface.Pure.Game as G
 import Graphics.Gloss.Field
 
 import System.Console.CmdArgs.Implicit
 
 import DSMC.Traceables
-import DSMC.Types
+import DSMC.Types hiding (position)
 import DSMC.Util.Vector
 
 
@@ -48,9 +49,37 @@ data World = World
 -- | Pixels in meter.
 scaleFactor = 200
 
+origin = Vector 0 0 0
+
+processEvents :: G.Event -> World -> World
+processEvents event world =
+    case event of
+      G.EventKey (G.SpecialKey k) G.Down _ _ ->
+          let
+              cam = camera world
+              (pos, dir) = (position cam, direction cam)
+              (n, sX, sY) = buildCartesian dir
+              newPos = 
+                  case k of
+                    G.KeyLeft -> pos <+> sX
+                    G.KeyRight -> pos <-> sX
+                    G.KeyUp -> pos <+> sY
+                    G.KeyDown -> pos <-> sY
+                    _ -> pos
+          in
+            world{camera = cam{position = newPos,
+                               direction = origin <-> newPos}}
+      G.EventKey _ _ _ _ -> world
+      G.EventMotion _ -> world
+
 main = 
     let
-        body = cylinder (Vector 0.25 1 0) (Vector 0 0 0) 1
+        body = intersection [sphere (Vector 0 0 0) 1,
+                             plane (Vector 1 0 1) 0,
+                             plane (Vector (-1) 0 1) 0,
+                             complement $ 
+                             cylinder (Vector 0 1 0) (Vector 0 0 0) 0.2]
+                                    
 
         (width, height) = (600, 600)
         display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
@@ -84,7 +113,7 @@ main =
       playField display (1, 1) 1
                 world 
                 makePixel
-                (\_ w -> w)
+                processEvents
                 (\_ w -> w)
 
 
@@ -99,20 +128,4 @@ main =
 --       Options{..} <- cmdArgs $ sample
 --       case bodyDef of
 --         Just fname -> print fname
---         Nothing -> error "Lol u suck mon"
-
--- -- | Calculate color of ray.
--- rayCast :: Ray -> Body -> Color
--- rayCast ray b =
---     let
---         fullTrace = trace b ray
---         hitTrace = intersectTraces fullTrace [((0, Nothing),
---                                                (infinityP, Nothing))]
---     in
---       if null hitTrace
---       then white
---       else
---           let
---               n = fromJust (snd (fst (head hitTrace)))
---           in
---             scaleColor red ((reverse n) .* (velocity ray))
+--         Nothing -> error "No body definition given"
