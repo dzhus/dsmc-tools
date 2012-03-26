@@ -40,6 +40,9 @@ data Options = Options
     { bodyDef :: Maybe FilePath }
     deriving (Data, Typeable)
 
+data World = World
+    { camera :: Camera
+    }
 
 
 -- | Pixels in meter.
@@ -47,44 +50,42 @@ scaleFactor = 200
 
 main = 
     let
-        body = intersection [plane (Vector 1 0 1) 0,
-                             union [sphere (Vector 0 0 0.2) 0.5, 
-                                    cylinder (Vector 0 1 0) (Vector 0 0 0) 0.2]]
-        (w, h) = (600, 600)
-        display = InWindow "dsmc-tools CSG raycaster" (w, h) (100, 100)
-        p = Vector 10 0 2
-        d = Vector (-10) 0 (-2)
-        zoom = 1
+        body = cylinder (Vector 0.25 1 0) (Vector 0 0 0) 1
+
+        (width, height) = (600, 600)
+        display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
+
+        zoom = 1.0
         viewScale = zoom / scaleFactor
-        !wScale = fromIntegral (w `div` 2) * viewScale
-        !hScale = fromIntegral (h `div` 2) * viewScale
-        camera = Camera p d
-        (n, sX, sY) = buildCartesian d
-        h' = fromIntegral h
+        !wScale = fromIntegral (width `div` 2) * viewScale
+        !hScale = fromIntegral (height `div` 2) * viewScale
 
-        {-# INLINE makeRay #-}
-        makeRay :: G.Point -> Ray
-        makeRay (x, y) = 
-            Particle (p 
-                      <+> (sX .^ ((float2Double x) * wScale))
-                      <+> (sY .^ ((float2Double y) * hScale))) n
+        world = World $ Camera (Vector 10 0 2) (Vector (-10) 0 (-2))
 
-        {-# INLINE makePixel #-}
-        makePixel :: G.Point -> Color
-        makePixel (x, y) =
+        makePixel :: World -> G.Point -> Color
+        makePixel w (x, y) =
             let
-                ray = makeRay (x, y)
+                (n, sX, sY) = buildCartesian $ direction $ camera w
+                p = Main.position $ camera w
+                ray :: Ray
+                ray = Particle (p 
+                                <+> (sX .^ ((float2Double x) * wScale))
+                                <+> (sY .^ ((float2Double y) * hScale))) n
+
                 fullTrace = trace body ray
                 hitTrace = intersectTraces fullTrace 
                            [((infinityN, Nothing), (infinityP, Nothing))]
-                n = fromJust $ snd $ fst $ head hitTrace
-                factor = double2Float $ (reverse n) .* (velocity ray)
+                surfaceNormal = fromJust $ snd $ fst $ head hitTrace
+                factor = double2Float $ (reverse surfaceNormal) .* (velocity ray)
             in
               if null hitTrace then white else mixColors factor (1 - factor) red black
-                  where
-                      
+        {-# INLINE makePixel #-}
     in
-      animateField display (1, 1) (\f point -> makePixel point)
+      playField display (1, 1) 1
+                world 
+                makePixel
+                (\_ w -> w)
+                (\_ w -> w)
 
 
 -- main :: IO ()
