@@ -18,9 +18,12 @@ import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Display
 import qualified Graphics.Gloss.Data.Point as G
 import qualified Graphics.Gloss.Interface.Pure.Game as G
-import Graphics.Gloss.Field
+import Graphics.Gloss.Raster.Field hiding (Point)
 
 import System.Console.CmdArgs.Implicit
+
+import qualified Data.Strict.Maybe as S
+import qualified Data.Strict.Tuple as S
 
 import DSMC.Traceables
 import DSMC.Types hiding (position)
@@ -47,7 +50,7 @@ data World = World
 
 
 -- | Pixels in meter.
-scaleFactor = 200
+scaleFactor = 100
 
 origin = Vector 0 0 0
 
@@ -74,14 +77,16 @@ processEvents event world =
 
 main = 
     let
-        body = intersection [sphere (Vector 0 0 0) 1,
-                             plane (Vector 1 0 1) 0,
-                             plane (Vector (-1) 0 1) 0,
-                             complement $ 
-                             cylinder (Vector 0 1 0) (Vector 0 0 0) 0.2]
-                                    
 
-        (width, height) = (600, 600)
+        body = Intersection (Intersection (Intersection (Intersection
+               (Cylinder (Vector 1 0 0) (Vector 0 0 0) 3)
+               (Cylinder (Vector 0 1 0) (Vector 0 0 0) 3))
+               (Cone (Vector 0 0 1) (Vector 0 0 0) (pi / 6)))
+               (Cylinder (Vector 0 0 1) (Vector 0.3 0.2 0) 1))
+               (Cylinder (Vector 0.1 0.05 1) (Vector (-0.3) 0.2 0) 1)
+               
+
+        (width, height) = (1600, 1000)
         display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
 
         zoom = 1.0
@@ -89,10 +94,10 @@ main =
         !wScale = fromIntegral (width `div` 2) * viewScale
         !hScale = fromIntegral (height `div` 2) * viewScale
 
-        world = World $ Camera (Vector 10 0 2) (Vector (-10) 0 (-2))
+        world = World $ Camera (Vector 10 0 10) (Vector (-1) 0 (-1))
 
         makePixel :: World -> G.Point -> Color
-        makePixel w (x, y) =
+        makePixel !w !(x, y) =
             let
                 (n, sX, sY) = buildCartesian $ direction $ camera w
                 p = Main.position $ camera w
@@ -101,13 +106,14 @@ main =
                                 <+> (sX .^ ((float2Double x) * wScale))
                                 <+> (sY .^ ((float2Double y) * hScale))) n
 
-                fullTrace = trace body ray
-                hitTrace = intersectTraces fullTrace 
-                           [((infinityN, Nothing), (infinityP, Nothing))]
-                surfaceNormal = fromJust $ snd $ fst $ head hitTrace
-                factor = double2Float $ (reverse surfaceNormal) .* (velocity ray)
+                hp = hitPoint body ray
             in
-              if null hitTrace then white else mixColors factor (1 - factor) red black
+              case hp of
+                S.Just (HitPoint _ (S.Just n)) -> 
+                    mixColors factor (1 - factor) red blue
+                    where
+                      factor = double2Float $ reverse n .* velocity ray
+                _ -> white
         {-# INLINE makePixel #-}
     in
       playField display (1, 1) 1
