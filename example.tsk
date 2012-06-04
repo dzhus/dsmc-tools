@@ -9,7 +9,9 @@ n = 10000
 m = 29
 
 # Flow velocity components, in m/s
-flowVelocity = (500, 0, 0)
+velocity = (500, 0, 0)
+
+fn = 10
 
 [Domain]
 # Domain dimensions by x, y, z in m

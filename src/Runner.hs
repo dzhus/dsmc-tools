@@ -33,8 +33,9 @@ main =
                w <- get cp domainSection "w"
                l <- get cp domainSection "l"
                h <- get cp domainSection "h"
-               v <- get cp flowSection "flowVelocity"
-               return $ (Flow n t (m * amu) v, 
+               sw <- get cp flowSection "fn"
+               v <- get cp flowSection "velocity"
+               return $ (Flow n t (m * amu) v sw,
                          makeDomain origin w l h)
       case res of
         Left e -> print e
