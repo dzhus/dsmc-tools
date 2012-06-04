@@ -1,0 +1,22 @@
+[Flow]
+# Absolute temperature, in K
+t = 300
+
+# Concentration
+n = 10000
+
+# Molecular mass
+m = 29
+
+# Flow velocity components, in m/s
+flowVelocity = (500, 0, 0)
+
+[Domain]
+# Domain dimensions by x, y, z in m
+w = 2
+l = 2
+h = 2
+
+[Simulation]
+dt = 0.0001
+tmax = 0.01
