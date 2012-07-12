@@ -3,14 +3,15 @@
 {-# LANGUAGE BangPatterns #-}
 
 {-|
-  
+
 Standalone raycasting runner for traceable objects.
-  
+
 |-}
 
 import Prelude hiding (reverse)
 
 import Data.Maybe
+
 
 import GHC.Float
 
@@ -25,17 +26,15 @@ import System.Console.CmdArgs.Implicit
 import qualified Data.Strict.Maybe as S
 import qualified Data.Strict.Tuple as S
 
+import DSMC.Particles
 import DSMC.Traceables
-import DSMC.Types hiding (position)
 import DSMC.Util.Vector
 
-
-type Ray = Particle
 
 -- | Observation point.
 data Camera = Camera { position :: Point
                      -- ^ Absolute camera position
-                     , direction :: Vector
+                     , direction :: Vec3
                      -- ^ View direction
                      }
 
@@ -48,83 +47,76 @@ data World = World
     { camera :: Camera
     }
 
+type Ray = Particle
 
 -- | Pixels in meter.
-scaleFactor = 100
+scaleFactor = 150
 
-origin = Vector 0 0 0
+origin = (0, 0, 0)
 
-processEvents :: G.Event -> World -> World
-processEvents event world =
-    case event of
-      G.EventKey (G.SpecialKey k) G.Down _ _ ->
-          let
-              cam = camera world
-              (pos, dir) = (position cam, direction cam)
-              (n, sX, sY) = buildCartesian dir
-              newPos = 
-                  case k of
-                    G.KeyLeft -> pos <+> sX
-                    G.KeyRight -> pos <-> sX
-                    G.KeyUp -> pos <+> sY
-                    G.KeyDown -> pos <-> sY
-                    _ -> pos
-          in
-            world{camera = cam{position = newPos,
-                               direction = origin <-> newPos}}
-      G.EventKey _ _ _ _ -> world
-      G.EventMotion _ -> world
 
-main = 
+-- | Body definition.
+body :: Body
+body = intersect 
+       (cone (0, 0, 1) (0, 0, 0) (pi / 12))
+       (sphere (0, 5, 0) 10)
+
+
+-- | Camera position and direction.
+cam = Camera (10, 0, 0) ((-1), 0, (1))
+
+
+-- | Window width.
+width = 1000
+
+
+-- | Window height.
+height = 1000
+
+
+-- | Zoom factor.
+zoom = 40.0
+
+
+-- | Physical distance from camera to origin.
+dist = 10.0
+
+
+main =
     let
-
-        body = Intersection (Intersection (Intersection (Intersection
-               (Cylinder (Vector 1 0 0) (Vector 0 0 0) 3)
-               (Cylinder (Vector 0 1 0) (Vector 0 0 0) 3))
-               (Cone (Vector 0 0 1) (Vector 0 0 0) (pi / 6)))
-               (Cylinder (Vector 0 0 1) (Vector 0.3 0.2 0) 1))
-               (Cylinder (Vector 0.1 0.05 1) (Vector (-0.3) 0.2 0) 1)
-               
-
-        (width, height) = (1600, 1000)
-        display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
-
-        zoom = 1.0
-        viewScale = zoom / scaleFactor
-        !wScale = fromIntegral (width `div` 2) * viewScale
-        !hScale = fromIntegral (height `div` 2) * viewScale
-
-        world = World $ Camera (Vector 10 0 10) (Vector (-1) 0 (-1))
-
-        makePixel :: World -> G.Point -> Color
-        makePixel !w !(x, y) =
+        !wScale = -(fromIntegral (width `div` 2) / zoom)
+        !hScale = -(fromIntegral (height `div` 2) / zoom)
+        !p = Main.position cam
+        makePixel :: Float -> G.Point -> Color
+        makePixel !t' !(x, y) =
             let
-                (n, sX, sY) = buildCartesian $ direction $ camera w
-                p = Main.position $ camera w
+                t = float2Double t'
+                cx = sin t
+                cy = cos t
+                (n, sX, sY) = buildCartesian (cx, cy, 0)
+                p = (-dist * cx, -dist * cy, 0)
                 ray :: Ray
-                ray = Particle (p 
-                                <+> (sX .^ ((float2Double x) * wScale))
-                                <+> (sY .^ ((float2Double y) * hScale))) n
+                ray = ((p
+                        <+> (sX .^ ((float2Double x) * wScale))
+                        <+> (sY .^ ((float2Double y) * hScale))), n)
 
-                hp = hitPoint body ray
+                !hp = trace body ray
             in
               case hp of
-                S.Just (HitPoint _ (S.Just n)) -> 
+                (((S.:!:) (HitPoint _ (S.Just hn)) _):_) ->
                     mixColors factor (1 - factor) red blue
                     where
-                      factor = double2Float $ reverse n .* velocity ray
+                      factor = double2Float $ reverse n .* hn
                 _ -> white
         {-# INLINE makePixel #-}
+        world = World cam
+        display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
     in
-      playField display (1, 1) 1
-                world 
-                makePixel
-                processEvents
-                (\_ w -> w)
+      animateField display (1, 1) makePixel
 
 
 -- main :: IO ()
--- main = 
+-- main =
 --     let
 --         sample = Options
 --                  { bodyDef = def

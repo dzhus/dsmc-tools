@@ -3,22 +3,31 @@
 t = 300
 
 # Concentration
-n = 10000
+n = 1e20
 
 # Molecular mass
 m = 29
 
 # Flow velocity components, in m/s
-velocity = (500, 0, 0)
+velocity = (1000, 0, 0)
 
-fn = 10
+fn = 5e13
+
+[Grid]
+
+hx = 0.1
+hy = 0.1
+hz = 0.1
 
 [Domain]
 # Domain dimensions by x, y, z in m
-w = 2
-l = 2
-h = 2
+w = 1
+l = 1
+h = 1
 
 [Simulation]
-dt = 0.0001
-tmax = 0.01
+dt = 1e-6
+tmax = 1e-2
+
+# Interface domains extrusion
+ex = 0.001
