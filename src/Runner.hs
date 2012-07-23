@@ -31,8 +31,8 @@ domainSection :: String
 domainSection = "Domain"
 
 
-gridSection :: String
-gridSection = "Grid"
+macroSection :: String
+macroSection = "Macroscopic"
 
 
 main :: IO ()
@@ -54,24 +54,24 @@ main =
                h <- get cp domainSection "h"
                ex <- get cp simSection "ex"
                dt <- get cp simSection "dt"
-               tmax <- get cp simSection "tmax"
---               hx <- get cp gridSection "hx"
---               hy <- get cp gridSection "hy"
---               hz <- get cp gridSection "hz"
-               return $ (Flow n t (m * amu) v sw, ex, dt, tmax, --hx, hy, hz,
+               ssteps <- get cp simSection "steady_steps"
+               sepsilon <- get cp simSection "steady_epsilon"
+               mx <- get cp macroSection "mx"
+               my <- get cp macroSection "my"
+               mz <- get cp macroSection "mz"
+               return $ (Flow n t (m * amu) v sw, ex, dt, ssteps, sepsilon, mx, my, mz,
                          makeDomain origin w l h)
       case res of
         Left e -> print e
-        Right (flow, ex, dt, tmax, domain) -> do
-                 s1 <- create >>= save
-                 s2 <- create >>= save
-                 s3 <- create >>= save
-                 s4 <- create >>= save
-                 s5 <- create >>= save
-                 s6 <- create >>= save
-                 let !(e, _) = openBoundaryInjection (s1, s2, s3, s4, s5, s6) domain ex flow emptyEnsemble
+        Right (flow, ex, dt, ssteps, sepsilon, mx, my, mz, domain) -> do
+                 -- s1 <- create >>= save
+                 -- s2 <- create >>= save
+                 -- s3 <- create >>= save
+                 -- s4 <- create >>= save
+                 -- s5 <- create >>= save
+                 -- s6 <- create >>= save
+                 -- let !(e, _) = openBoundaryInjection (s1, s2, s3, s4, s5, s6) domain ex flow emptyEnsemble
+                 !e <- simulate domain body flow dt ex sepsilon ssteps (mx, my, mz) split
 --                 printEnsemble e
-                 !e <- simulate domain body flow dt tmax ex split
 --                 print $ R.extent e
---                 regPrintVels (domain, hx, hy, hz) e
                  return ()
