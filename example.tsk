@@ -11,13 +11,12 @@ m = 29
 # Flow velocity components, in m/s
 velocity = (1000, 0, 0)
 
-fn = 5e13
+fn = 1e14
 
-[Grid]
-
-hx = 0.1
-hy = 0.1
-hz = 0.1
+[Macroscopic]
+mx = 0.5
+my = 0.5
+mz = 0.5
 
 [Domain]
 # Domain dimensions by x, y, z in m
@@ -27,7 +26,15 @@ h = 1
 
 [Simulation]
 dt = 1e-6
-tmax = 1e-2
+
+# For how many steps in steady regime to collect macroscopic data
+steady_steps = 100
+
+# Consider the system steady when the ratio of total particle counts
+# on two consecutive steps differs from unit for less than this number
+steady_epsilon = 1e-5
 
 # Interface domains extrusion
 ex = 0.001
+
+empty_start = false
