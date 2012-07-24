@@ -4,12 +4,8 @@ module Main
 
 where
 
-import System.Random.MWC
-
 import Data.ConfigFile
 import Control.Monad.Error
-
-import Control.Monad.ST (stToIO)
 
 import DSMC
 import DSMC.Domain
@@ -39,7 +35,7 @@ main :: IO ()
 main =
     let
         origin = (0, 0, 0)
-        body = (sphere (0, 0, 0) 0.5)
+        body = (sphere (0, 0, 0) 0.3)
     in do
       split <- getNumCapabilities
       res <- runErrorT $ do
@@ -56,14 +52,15 @@ main =
                dt <- get cp simSection "dt"
                ssteps <- get cp simSection "steady_steps"
                sepsilon <- get cp simSection "steady_epsilon"
+               emptys <- get cp simSection "empty_start"
                mx <- get cp macroSection "mx"
                my <- get cp macroSection "my"
                mz <- get cp macroSection "mz"
-               return $ (Flow n t (m * amu) v sw, ex, dt, ssteps, sepsilon, mx, my, mz,
+               return $ (Flow n t (m * amu) v sw, ex, dt, ssteps, sepsilon, emptys, mx, my, mz,
                          makeDomain origin w l h)
       case res of
         Left e -> print e
-        Right (flow, ex, dt, ssteps, sepsilon, mx, my, mz, domain) -> do
+        Right (flow, ex, dt, ssteps, sepsilon, emptys, mx, my, mz, domain) -> do
                  -- s1 <- create >>= save
                  -- s2 <- create >>= save
                  -- s3 <- create >>= save
@@ -71,7 +68,8 @@ main =
                  -- s5 <- create >>= save
                  -- s6 <- create >>= save
                  -- let !(e, _) = openBoundaryInjection (s1, s2, s3, s4, s5, s6) domain ex flow emptyEnsemble
-                 !e <- simulate domain body flow dt ex sepsilon ssteps (mx, my, mz) split
+                 !e <- simulate domain body flow dt emptys ex sepsilon ssteps (mx, my, mz) split
 --                 printEnsemble e
+                 print "Finished!"
 --                 print $ R.extent e
                  return ()
