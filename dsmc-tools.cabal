@@ -26,12 +26,11 @@ executable dsmc-caster
     strict       == 0.3.*
 
 executable dsmc-runner
-  ghc-options:  -Wall -O2 -funbox-strict-fields -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
+  ghc-options: -Wall -O2 -funbox-strict-fields -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
   main-is: src/Runner.hs
 
   build-depends:
     base         == 4.*,
     ConfigFile   == 1.1.*,
     dsmc         == 0.1.*,
-    mwc-random   == 0.12.*,
     mtl          == 2.1.1
