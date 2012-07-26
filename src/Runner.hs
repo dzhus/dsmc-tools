@@ -77,29 +77,54 @@ main =
         Left e -> print e
         Right (flow, ex, dt, ssteps, sepsilon, emptys, mx, my, mz, domain) -> do
                  !(e, macro) <- simulate domain body flow dt emptys ex sepsilon ssteps (mx, my, mz) split
---                 printEnsemble e
                  print $ R.extent macro
                  print "Finished!"
-                 _ <- saveMacroscopic "macro.txt" macro
+                 _ <- saveMacroscopic macro "macro.txt"
+                 _ <- saveEnsemble e "ensemble.txt"
                  return ()
+
 
 fd :: Double -> ByteString
 fd = pack . show
 {-# INLINE fd #-}
 
+
 ws :: ByteString
 ws = B.singleton ' '
+
 
 nl :: ByteString
 nl = B.singleton '\n'
 
 
-formatMacroParameter ((x, y, z), (n, (u, v, w), c)) =
+-- | Save Repa array in text file, one element per line.
+saveRepa :: (Unbox e) => 
+            (e -> ByteString)
+         -- ^ Formatter function.
+         -> R.Array U sh e
+         -> FilePath
+         -> IO ()
+saveRepa f array path = do
+    h <- openFile path WriteMode
+    VU.forM_ (R.toUnboxed array) (hPut h . f)
+
+
+formatParticle :: Particle -> ByteString
+formatParticle ((x, y, z), (u, v, w)) =
+    B.concat [fd x, ws, fd y, ws, fd z, ws, fd u, ws, fd v, ws, fd w, nl]
+{-# INLINE formatParticle #-}
+
+
+formatMacroParameters :: (Point, MacroParameters) -> ByteString
+formatMacroParameters ((x, y, z), (n, (u, v, w), c)) =
     if n == 0.0 then B.empty
     else B.concat [fd x, ws, fd y, ws, fd z, ws, fd u, ws, fd v, ws, fd w, nl]
-    
+{-# INLINE formatMacroParameters #-}
 
-saveMacroscopic path macro = do
-    h <- openFile path WriteMode
-    VU.forM_ (R.toUnboxed macro) $ \p -> do
-      hPut h (formatMacroParameter p)
+
+saveMacroscopic :: MacroField -> FilePath -> IO ()
+saveMacroscopic = saveRepa formatMacroParameters
+
+
+saveEnsemble :: Ensemble -> FilePath -> IO ()
+saveEnsemble = saveRepa formatParticle
