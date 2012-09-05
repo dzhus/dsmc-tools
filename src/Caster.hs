@@ -28,6 +28,7 @@ import qualified Data.Strict.Tuple as S
 
 import DSMC.Particles
 import DSMC.Traceables
+import DSMC.Traceables.Parser
 import DSMC.Util.Vector
 
 
@@ -38,59 +39,49 @@ data Camera = Camera { position :: Point
                      -- ^ View direction
                      }
 
-
+-- | Static options for caster.
 data Options = Options
-    { bodyDef :: Maybe FilePath }
-    deriving (Data, Typeable)
-
-data World = World
-    { camera :: Camera
+    { bodyDef :: FilePath
+    , width :: Int
+    , height :: Int
+    , pixels :: Int
     }
+    deriving (Data, Typeable)
 
 type Ray = Particle
 
--- | Pixels in meter.
-scaleFactor = 150
-
 origin = (0, 0, 0)
 
-
--- | Body definition.
-body :: Body
-body = intersect 
-       (cone (0, 0, 1) (0, 0, 0) (pi / 12))
-       (sphere (0, 5, 0) 10)
-
+-- | Pixels in meter.
+scaleFactor :: Double
+scaleFactor = 50.0
 
 -- | Camera position and direction.
 cam = Camera (10, 0, 0) ((-1), 0, (1))
 
-
--- | Window width.
-width = 1000
-
-
--- | Window height.
-height = 1000
-
-
--- | Zoom factor.
-zoom = 40.0
-
-
 -- | Physical distance from camera to origin.
-dist = 10.0
+dist = norm $ origin <-> (position cam)
 
-
-main =
+casterField :: Int
+            -- ^ Window width.
+            -> Int
+            -- ^ Window height.
+            -> Int
+            -- ^ Pixels per point.
+            -> Body
+            -- ^ Body to show.
+            -> IO ()
+casterField width height pixels body =
     let
-        !wScale = -(fromIntegral (width `div` 2) / zoom)
-        !hScale = -(fromIntegral (height `div` 2) / zoom)
-        !p = Main.position cam
+        !wScale = -(fromIntegral (width `div` 2) / scaleFactor)
+        !hScale = -(fromIntegral (height `div` 2) / scaleFactor)
+        display = InWindow "dsmc-tools CSG raycaster" (width, height) (0, 0)
         makePixel :: Float -> G.Point -> Color
         makePixel !t' !(x, y) =
             let
                 t = float2Double t'
+                -- Rotate the view plane around origin as the world
+                -- evolves
                 cx = sin t
                 cy = cos t
                 (n, sX, sY) = buildCartesian (cx, cy, 0)
@@ -109,21 +100,24 @@ main =
                       factor = double2Float $ reverse n .* hn
                 _ -> white
         {-# INLINE makePixel #-}
-        world = World cam
-        display = InWindow "dsmc-tools CSG raycaster" (width, height) (100, 100)
     in
-      animateField display (1, 1) makePixel
+      animateField display (pixels, pixels) makePixel
 
 
--- main :: IO ()
--- main =
---     let
---         sample = Options
---                  { bodyDef = def
---                    &= help "Path to body definition file"
---                  }
---     in do
---       Options{..} <- cmdArgs $ sample
---       case bodyDef of
---         Just fname -> print fname
---         Nothing -> error "No body definition given"
+-- | Read body def and program arguments, run the actual caster on
+-- success.
+main =
+    let
+        sample = Options
+                 { bodyDef = def &= argPos 0 &= typFile
+                 , width = 500 &= help "Window width"
+                 , height = 500 &= help "Window height"
+                 , pixels = 1 &= help "Number of pixels to draw per point, in each dimension"
+                 }
+                 &= program "dsmc-caster"
+    in do
+      Options{..} <- cmdArgs $ sample
+      body <- parseBodyFile bodyDef
+      case body of
+        Right b -> casterField width height pixels b
+        Left e -> error $ "Problem when reading body definition " ++ bodyDef ++ ": " ++ e
