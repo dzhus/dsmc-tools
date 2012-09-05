@@ -10,19 +10,21 @@ import Data.ByteString.Char8 as B
 
 import Data.ConfigFile
 
-import Data.Vector.Unboxed as VU
+import Data.Vector.Unboxed as VU hiding ((++))
 
 import System.IO
+import System.Environment
 
 import DSMC
 import DSMC.Domain
 import DSMC.Macroscopic
 import DSMC.Particles
 import DSMC.Traceables
+import DSMC.Traceables.Parser
 import DSMC.Util.Constants
 import DSMC.Util.Vector
 
-import Data.Array.Repa as R
+import Data.Array.Repa as R hiding ((++))
 
 import GHC.Conc.Sync
 
@@ -43,17 +45,22 @@ domainSection = "Domain"
 macroSection :: String
 macroSection = "Macroscopic"
 
+bodySection :: String
+bodySection = "Body"
+
 
 main :: IO ()
 main =
     let
         origin = (0, 0, 0)
-        -- TODO Load body from external definition
-        body = (sphere (0, 0, 0) 0.3)
     in do
+      [probDef, macroFile, ensFile] <- getArgs
       split <- getNumCapabilities
+      print $ "Using problem definition file: " ++ probDef
       res <- runErrorT $ do
-               cp <- join $ liftIO $ readfile emptyCP "example.tsk"
+               cp <- join $ liftIO $ readfile emptyCP probDef
+               -- Must refactor this somehow (actually, write CmdArgs
+               -- for .ini files)
                n <- get cp flowSection "n"
                t <- get cp flowSection "t"
                m <- get cp flowSection "m"
@@ -70,18 +77,31 @@ main =
                mx <- get cp macroSection "mx"
                my <- get cp macroSection "my"
                mz <- get cp macroSection "mz"
-               -- TODO Tidy this up
-               return $ (Flow n t (m * amu) v sw, ex, dt, ssteps, sepsilon, emptys, mx, my, mz,
-                         makeDomain origin w l h)
+               bodyDef <- get cp bodySection "definition"
+               return $ (Flow n t (m * amu) v sw, ex, dt, 
+                         ssteps, sepsilon, emptys, 
+                         mx, my, mz,
+                         makeDomain origin w l h,
+                         bodyDef)
       case res of
         Left e -> print e
-        Right (flow, ex, dt, ssteps, sepsilon, emptys, mx, my, mz, domain) -> do
-                 !(e, macro) <- simulate domain body flow dt emptys ex sepsilon ssteps (mx, my, mz) split
-                 print $ R.extent macro
-                 print "Finished!"
-                 _ <- saveMacroscopic macro "macro.txt"
-                 _ <- saveEnsemble e "ensemble.txt"
-                 return ()
+        Right (flow, ex, dt, 
+               ssteps, sepsilon, emptys, 
+               mx, my, mz, 
+               domain, 
+               bodyDef) -> do
+                 -- Try to read body from definition file
+                 body <- parseBodyFile bodyDef
+                 case body of
+                   Left e -> error $ "Problem when reading body definition " ++ bodyDef ++ ": " ++ e
+                   Right b -> do
+                             -- Run the simulation, obtaining iteration count and final distributions
+                             !(iters, e, macro) <- simulate domain b flow dt emptys ex sepsilon ssteps (mx, my, mz) split
+                             print $ R.extent macro
+                             print $ "Finished after " ++ (show iters) ++ " iterations"
+                             _ <- saveMacroscopic macro "macro.txt"
+                             _ <- saveEnsemble e "ensemble.txt"
+                             return ()
 
 
 fd :: Double -> ByteString
