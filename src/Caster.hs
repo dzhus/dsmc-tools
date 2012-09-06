@@ -120,4 +120,4 @@ main =
       body <- parseBodyFile bodyDef
       case body of
         Right b -> casterField width height pixels b
-        Left e -> error $ "Problem when reading body definition " ++ bodyDef ++ ": " ++ e
+        Left e -> error $ "Problem when reading body definition: " ++ e
