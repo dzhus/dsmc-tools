@@ -1,6 +1,6 @@
 [Body]
 # Path to body definition file
-definition = ./reentry.geo
+definition = ./body.geo
 
 [Flow]
 # Absolute temperature, in K

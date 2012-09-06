@@ -34,7 +34,8 @@ executable dsmc-runner
     bytestring     == 0.9.*,
     ConfigFile     == 1.1.*,
     dsmc           == 0.1.*,
-    transformers,
-    mtl            == 2.1.1,
+    hslogger       == 1.2.*,
+    transformers   == 0.3.*,
+    mtl            == 2.1.*,
     repa           == 3.2.*,
     vector         == 0.9.*
