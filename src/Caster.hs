@@ -117,7 +117,7 @@ handleEvents e w =
                                }
                     Pan -> 
                         let
-                            !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
+                            !(_, sX, sY) = buildCartesian (yaw w) (pitch w)
                         in 
                           w{ holdPoint = Just p
                            , target = (target w) <+> (sX .^ xdelta) <-> (sY .^ ydelta)
@@ -150,12 +150,12 @@ casterField width height pixels body bright' dark' =
                 !d = dist w
                 !wScale = -(wS * d / scaleFactor)
                 !hScale = (hS * d / scaleFactor)
-                !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
+                !(n, sX, sY) = buildCartesian (yaw w) (pitch w)
                 !p = n .^ (-d) <+> target w
                 ray :: Ray
                 !ray = ((p
                         <+> (sX .^ ((float2Double x) * wScale))
-                        <+> (sY .^ ((float2Double y) * hScale))) , n)
+                        <+> (sY .^ ((float2Double y) * hScale))), n)
 
                 !hp = trace body ray
             in
@@ -184,11 +184,11 @@ main =
                  , pixels = 1
                    &= help ("Number of pixels to draw per point," ++
                             "in each dimension")
-                 , brightRGBA = (1, 0, 0, 1)
+                 , brightRGBA = (0.9, 0.9, 0.9, 1)
                    &= help ("Color for surface parallel to view plane," ++
                             " with each component within [0..1]")
                    &= typ "R,G,B,A"
-                 , darkRGBA = (0, 0, 1, 1)
+                 , darkRGBA = (0, 0, 0, 1)
                    &= help "Color for surface perpendicular to view plane"
                    &= typ "R,G,B,A"
                  }
