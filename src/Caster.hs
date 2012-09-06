@@ -120,7 +120,7 @@ handleEvents e w =
                             !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
                         in 
                           w{ holdPoint = Just p
-                           , target = (target w) <+> (sX .^ xdelta) <+> (sY .^ ydelta)
+                           , target = (target w) <+> (sX .^ xdelta) <-> (sY .^ ydelta)
                            }
                     _ -> w
       _ -> w
@@ -143,11 +143,13 @@ casterField width height pixels body bright' dark' =
     let
         display = InWindow "dsmc-tools CSG raycaster" (width, height) (0, 0)
         makePixel :: World -> G.Point -> Color
+        !wS = fromIntegral (width `div` 2)
+        !hS = fromIntegral (height `div` 2)
         makePixel !w !(x, y) =
             let
                 !d = dist w
-                !wScale = -(fromIntegral (width `div` 2) * d / scaleFactor)
-                !hScale = -(fromIntegral (height `div` 2) * d / scaleFactor)
+                !wScale = -(wS * d / scaleFactor)
+                !hScale = (hS * d / scaleFactor)
                 !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
                 !p = n .^ (-d) <+> target w
                 ray :: Ray
