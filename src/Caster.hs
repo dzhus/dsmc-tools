@@ -109,7 +109,7 @@ casterField width height pixels body =
 main =
     let
         sample = Options
-                 { bodyDef = def &= argPos 0 &= typFile
+                 { bodyDef = def &= argPos 0 &= typ "BODY-FILE"
                  , width = 500 &= help "Window width"
                  , height = 500 &= help "Window height"
                  , pixels = 1 &= help "Number of pixels to draw per point, in each dimension"
