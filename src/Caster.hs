@@ -102,6 +102,10 @@ handleEvents e w =
           w{dist = dist w + zoomFactor}
       G.EventKey (G.MouseButton G.WheelUp) _ _ _ -> 
           w{dist = dist w - zoomFactor}
+      G.EventKey (G.Char 'r') G.Down _ _ ->
+          w{ target = origin
+           , yaw = 0
+           , pitch = 0}
       G.EventMotion p@(x, y) ->
           case (holdPoint w) of
             Nothing -> w
