@@ -58,10 +58,7 @@ bodySection = "Body"
 
 
 main :: IO ()
-main =
-    let
-        origin = (0, 0, 0)
-    in do
+main = do
       -- | Setup logging to stderr
       let lf = simpleLogFormatter "$time: [$prio] $msg"
       lh <- (flip setFormatter) lf <$> verboseStreamHandler stderr DEBUG

@@ -29,46 +29,101 @@ import DSMC.Traceables.Parser
 import DSMC.Util.Vector
 
 
--- | Observation point.
-data Camera = Camera { position :: Point
-                     -- ^ Absolute camera position
-                     , direction :: Vec3
-                     -- ^ View direction
-                     }
+data InteractionMode = None | Rotate | Pan
 
--- | Static options for caster.
+
+-- | World state with observation point parameters and event helpers.
+-- Roll is always 0.
+data World = World { dist :: Double
+                   -- ^ Distance to origin.
+                   , pitch :: Double
+                   , yaw :: Double
+                   -- ^ Yaw of camera as if it was in origin.
+                   , target :: Point
+                   -- ^ Where camera looks at.
+                   , holdPoint :: Maybe (Float, Float)
+                   -- ^ Point where mouse button was held down.
+                   , mode :: InteractionMode
+                   }
+
+
+-- | Static command line options for caster.
 data Options = Options
     { bodyDef :: FilePath
     , width :: Int
     , height :: Int
     , pixels :: Int
-    , bright :: (Float, Float, Float, Float)
+    , brightRGBA :: (Float, Float, Float, Float)
     -- ^ Color for bright surfaces parallel to view plane (RGBA)
-    , dark :: (Float, Float, Float, Float)
+    , darkRGBA :: (Float, Float, Float, Float)
     -- ^ Color for dark surfaces perpendicular to view plane (RGBA)
     }
     deriving (Data, Typeable)
 
+
 type Ray = Particle
 
-origin :: (Double, Double, Double)
-origin = (0, 0, 0)
 
--- | Pixels in meter.
+-- | Pixels in meter at unit distance.
 scaleFactor :: Double
 scaleFactor = 50.0
 
--- | Camera position and direction.
-cam :: Camera
-cam = Camera (10, 0, 0) ((-1), 0, (1))
 
--- | Physical distance from camera to origin.
-dist :: Double
-dist = norm $ origin <-> (position cam)
+-- | Initial world.
+start :: World
+start = World 5 0 0 origin Nothing None
 
 
 uncurry4 :: (a -> b -> c -> d -> e) -> (a, b, c, d) -> e
 uncurry4 f (a, b, c, d) = f a b c d
+
+
+-- |  Scale deltas between hold and release coordinates by this number.
+dragFactor :: Double
+dragFactor = pi / 1800
+
+
+-- | Change distance by this amount per one mouse wheel step.
+zoomFactor :: Double
+zoomFactor = 0.01
+
+
+-- | Handle mouse drag to change pitch & yaw and mouse wheel to zoom.
+handleEvents :: G.Event -> World -> World
+handleEvents e w =
+    case e of
+      G.EventKey (G.MouseButton G.LeftButton) G.Down _ c ->
+          w{holdPoint = Just c, mode = Rotate}
+      G.EventKey (G.MouseButton G.RightButton) G.Down _ c ->
+          w{holdPoint = Just c, mode = Pan}
+      G.EventKey (G.MouseButton _) G.Up _ _ -> 
+          w{holdPoint = Nothing}
+      G.EventKey (G.MouseButton G.WheelDown) _ _ _ -> 
+          w{dist = dist w + zoomFactor}
+      G.EventKey (G.MouseButton G.WheelUp) _ _ _ -> 
+          w{dist = dist w - zoomFactor}
+      G.EventMotion p@(x, y) ->
+          case (holdPoint w) of
+            Nothing -> w
+            Just (u, v) -> 
+                let
+                    xdelta = (float2Double (x - u)) * dragFactor
+                    ydelta = (float2Double (y - v)) * dragFactor
+                in
+                  case (mode w) of
+                    Rotate -> w{ holdPoint = Just p
+                               , yaw = (yaw w) - xdelta
+                               , pitch = (pitch w) + ydelta
+                               }
+                    Pan -> 
+                        let
+                            !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
+                        in 
+                          w{ holdPoint = Just p
+                           , target = (target w) <+> (sX .^ xdelta) <+> (sY .^ ydelta)
+                           }
+                    _ -> w
+      _ -> w
 
 
 casterField :: Int
@@ -86,23 +141,19 @@ casterField :: Int
             -> IO ()
 casterField width height pixels body bright' dark' =
     let
-        !wScale = -(fromIntegral (width `div` 2) / scaleFactor)
-        !hScale = -(fromIntegral (height `div` 2) / scaleFactor)
         display = InWindow "dsmc-tools CSG raycaster" (width, height) (0, 0)
-        makePixel :: Float -> G.Point -> Color
-        makePixel !t' !(x, y) =
+        makePixel :: World -> G.Point -> Color
+        makePixel !w !(x, y) =
             let
-                t = float2Double t'
-                -- Rotate the view plane around origin as the world
-                -- evolves
-                cx = sin t
-                cy = cos t
-                (n, sX, sY) = buildCartesian (cx, cy, 0)
-                p = (-dist * cx, -dist * cy, 0)
+                !d = dist w
+                !wScale = -(fromIntegral (width `div` 2) * d / scaleFactor)
+                !hScale = -(fromIntegral (height `div` 2) * d / scaleFactor)
+                !(n, sX, sY) = buildCartesianAng (yaw w) (pitch w)
+                !p = n .^ (-d) <+> target w
                 ray :: Ray
-                ray = ((p
+                !ray = ((p
                         <+> (sX .^ ((float2Double x) * wScale))
-                        <+> (sY .^ ((float2Double y) * hScale))), n)
+                        <+> (sY .^ ((float2Double y) * hScale))) , n)
 
                 !hp = trace body ray
             in
@@ -110,11 +161,13 @@ casterField width height pixels body bright' dark' =
                 (((S.:!:) (HitPoint _ (S.Just hn)) _):_) ->
                     mixColors factor (1 - factor) bright' dark'
                     where
-                      factor = double2Float $ reverse n .* hn
+                      factor = abs $ double2Float $ invert n .* hn
                 _ -> white
         {-# INLINE makePixel #-}
     in
-      animateField display (pixels, pixels) makePixel
+      playField display (pixels, pixels) 5 start makePixel
+                    handleEvents
+                    (flip const)
 
 
 -- | Read body def and program arguments, run the actual caster on
@@ -126,14 +179,14 @@ main =
                  { bodyDef = def &= argPos 0 &= typ "BODY-FILE"
                  , width = 500 &= help "Window width"
                  , height = 500 &= help "Window height"
-                 , pixels = 1 
+                 , pixels = 1
                    &= help ("Number of pixels to draw per point," ++
                             "in each dimension")
-                 , bright = (1, 0, 0, 1)
+                 , brightRGBA = (1, 0, 0, 1)
                    &= help ("Color for surface parallel to view plane," ++
                             " with each component within [0..1]")
                    &= typ "R,G,B,A"
-                 , dark = (0, 0, 1, 1)
+                 , darkRGBA = (0, 0, 1, 1)
                    &= help "Color for surface perpendicular to view plane"
                    &= typ "R,G,B,A"
                  }
@@ -143,6 +196,6 @@ main =
       body <- parseBodyFile bodyDef
       case body of
         Right b -> casterField width height pixels b
-                   (uncurry4 makeColor bright)
-                   (uncurry4 makeColor dark)
+                   (uncurry4 makeColor brightRGBA)
+                   (uncurry4 makeColor darkRGBA)
         Left e -> error $ "Problem when reading body definition: " ++ e
