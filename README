@@ -1,0 +1,52 @@
+This package provides CLI to dsmc library to perform rarefied gas flow
+simulation. The tool is named `dsmc-runner`. Another tool,
+`dsmc-caster` is used to render CSG bodies to check if the body
+geometry is defined correctly.
+
+Both programs can be run with `-?` flag to obtain usage informaiton
+and help of command-line flags.
+
+To run programs using multiple threads, specify `+RTS -N` flag.
+
+Extra data files which are installed with this package can be found in
+`share` directory used by Cabal.
+
+* dsmc-runner
+
+To perform a simulation, input parameters for DSMC must be defined in
+«problem file», which uses INI-like format, see `example.prb` included
+in the package.
+
+To define the body (which is then referenced from the problem file),
+`.geo` format is used, see `body.geo`, `smiley.geo` and `reentry2.geo`
+for example.
+
+The runner dumps macroscopic data in text format to the file specified
+using `-m` option, which can be then analyzed using visualization
+software like ParaView.
+
+To sum up,
+
+    $ dsmc-runner example.prb -m macro.txt +RTS -N
+
+    2012-06-13 11:32:02 MSK: [DEBUG] Program started
+    2012-06-13 11:32:02 MSK: [DEBUG] Using problem file: example.prb
+    2012-06-13 11:32:02 MSK: [DEBUG] Macroscopic data output file: macro.txt
+    2012-06-13 11:32:02 MSK: [DEBUG] Not writing ensemble data
+    2012-06-13 11:32:02 MSK: [DEBUG] Using body definition file: ./reentry2.geo
+    2012-06-13 11:32:02 MSK: [DEBUG] Starting simulation
+    2012-06-13 11:32:04 MSK: [DEBUG] Not steady yet; particles count: 1662080
+    2012-06-13 11:32:05 MSK: [DEBUG] Not steady yet; particles count: 1661946
+    2012-06-13 11:32:06 MSK: [DEBUG] Not steady yet; particles count: 1662026
+    …
+
+* dsmc-caster
+  
+dsmc-caster is a program used to view bodies defined using `.geo`
+format.
+
+    $ dsmc-caster smiley.geo +RTS -N
+
+Drag with left mouse button to rotate the object and mouse wheel to
+zoom in/out. More command-line options are available, see usage help
+with `-?` flag.

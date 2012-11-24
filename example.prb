@@ -1,6 +1,7 @@
 [Body]
 # Path to body definition file
-definition = ./body.geo
+definition = ./reentry2.geo
+volume_points = 1000
 
 [Flow]
 # Absolute temperature, in K
@@ -16,33 +17,36 @@ m = 29
 velocity = (1000, 0, 0)
 
 # How many real particles a single simulator particle represents
-fn = 5e13
+fn = 5e16
+
+[Surface]
+temperature = 300
 
 [Macroscopic]
 # Macroscopic grid sizes, in m
-mx = 0.02
-my = 0.02
-mz = 0.02
+mx = 0.1
+my = 0.1
+mz = 0.1
 
 [Domain]
 # Domain dimensions by x, y, z in m
-w = 1
-l = 1
-h = 1
+w = 12
+l = 12
+h = 6
 
 [Simulation]
-dt = 1e-6
+dt = 1e-5
 
 # For how many steps in steady regime to collect macroscopic data
-steady_steps = 100
+steady_steps = 500
 
 # Consider the system steady when the ratio of total particle counts
 # on two consecutive steps differs from unit for less than this number
-steady_epsilon = 1
+steady_epsilon = 1e-6
 
 # Interface domains extrusion
-ex = 0.002
+ex = 0.04
 
 # Start with empty simulation domain if true, fill it with particles
 # distributed according to flow parameters upon start otherwise
-empty_start = true
+empty_start = false
