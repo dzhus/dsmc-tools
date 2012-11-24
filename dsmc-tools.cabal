@@ -1,5 +1,5 @@
 name:                dsmc-tools
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            DSMC toolkit for rarefied gas dynamics
 license:             BSD3
 license-file:        LICENSE
@@ -31,11 +31,11 @@ executable dsmc-runner
 
   build-depends:
     base           == 4.*,
-    bytestring     == 0.9.*,
+    bytestring     == 0.10.*,
     ConfigFile     == 1.1.*,
     dsmc           == 0.1.*,
     hslogger       == 1.2.*,
     transformers   == 0.3.*,
     mtl            == 2.1.*,
     repa           == 3.2.*,
-    vector         == 0.9.*
+    vector         == 0.10.*
