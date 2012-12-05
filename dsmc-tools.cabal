@@ -18,7 +18,7 @@ tested-with:         GHC == 7.6.1
 
 source-repository head
   type: git
-  location: https://github.com/dzhus/dsmc-tools/
+  location: http://github.com/dzhus/dsmc-tools/
 
 executable dsmc-caster
   ghc-options: -Wall -O2 -funbox-strict-fields -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
