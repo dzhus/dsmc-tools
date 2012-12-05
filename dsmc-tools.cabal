@@ -3,6 +3,7 @@ description:         CLI tools for dsmc library. README and examples are
                      included in package distribution.
 version:             0.1.0.0
 synopsis:            DSMC toolkit for rarefied gas dynamics
+homepage:            http://github.com/dzhus/dsmc-tools/
 license:             BSD3
 license-file:        LICENSE
 author:              Dmitry Dzhus
