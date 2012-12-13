@@ -1,7 +1,7 @@
 name:                dsmc-tools
 description:         CLI tools for dsmc library. README and examples are
                      included in package distribution.
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            DSMC toolkit for rarefied gas dynamics
 homepage:            http://github.com/dzhus/dsmc-tools/
 license:             BSD3
@@ -10,7 +10,7 @@ author:              Dmitry Dzhus
 maintainer:          dima@dzhus.org
 category:            Physics
 
-data-files:          README, example.prb, body.geo, smiley.geo, reentry2.geo
+data-files:          README, example.prb
 
 build-type:          Simple
 cabal-version:       >=1.8
@@ -19,20 +19,6 @@ tested-with:         GHC == 7.6.1
 source-repository head
   type: git
   location: http://github.com/dzhus/dsmc-tools/
-
-executable dsmc-caster
-  ghc-options: -Wall -O2 -funbox-strict-fields -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
-  main-is: src/Caster.hs
-
-  -- other-modules:
-
-  build-depends:
-    base         == 4.*,
-    cmdargs      == 0.10.*,
-    dsmc         == 0.1.*,
-    gloss        == 1.7.*,
-    gloss-raster == 1.7.*,
-    strict       == 0.3.*
 
 executable dsmc-runner
   ghc-options: -Wall -O2 -funbox-strict-fields -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
